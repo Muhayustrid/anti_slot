@@ -1,0 +1,186 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="google-site-verification" content="eSAHjvnl_NaBDWzUbc-RsbgkT0a5DFhiIHPiztOdGno" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntiSlot - Deteksi Judi Online</title>
+    <link rel="icon" type="image/svg" href="{% static 'assets/image/youtube.svg' %}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <script src="https://unpkg.com/htmx.org@1.9.10"
+        integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
+        crossorigin="anonymous"></script>
+
+    {% block style %}{% endblock %}
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="nav-left">
+            {% if oauth_ok %}
+            <button class="burger-menu" id="burgerMenu" aria-label="Menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            {% endif %}
+            <a href="/" style="text-decoration:none; color:inherit;"><span class="brand-name">AntiSlot</span></a>
+        </div>
+        <div class="nav-right">
+            <div class="profile-container" id="profileContainer">
+
+                {% if oauth_ok %}
+                <div class="profile-icon logged-in" id="profileIcon">
+                    {% if yt_user.avatar %}
+                    <img src="{{ yt_user.avatar }}"
+                        style="width:100%; height:100%; border-radius:50%; object-fit: cover;" alt="User">
+                    {% else %}
+                    <span>{{ yt_user.name|first }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="profile-dropdown-menu hidden" id="profileDropdown">
+                    <div style="padding: 0.75rem 1rem; border-bottom:1px solid #eee; font-size:0.85rem; color:#666;">
+                        {{ yt_user.name }}
+                    </div>
+                    <a href="{% url 'logout_view' %}" class="dropdown-item" style="text-decoration: none;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        <span>Log Out</span>
+                    </a>
+                </div>
+
+                {% else %}
+                <div class="profile-icon" id="profileIcon" onclick="window.location.href='{% url 'oauth_start' %}'">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span>Login</span>
+                </div>
+
+                <div class="suggest-login-menu" id="suggestLoginMenu">
+                    <div class="suggest-header">
+                        <span>Disarankan Login</span>
+                        <button class="close-suggest" id="closeSuggestBtn">&times;</button>
+                    </div>
+                    <p>Login untuk moderasi.</p>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay hidden" id="sidebarOverlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <button class="burger-menu" id="burgerMenuSidebar" aria-label="Menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <a href="/" style="text-decoration:none; color:inherit;"><span class="brand-name">AntiSlot</span></a>
+        </div>
+        <div class="sidebar-menu">
+            <a href="/" class="sidebar-item {% if request.resolver_match.url_name == 'index' %}active{% endif %}">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                <span>Beranda</span>
+            </a>
+            <a href="{% url 'video_saya' %}"
+                class="sidebar-item {% if request.resolver_match.url_name == 'video_saya' %}active{% endif %}">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                </svg>
+                <span>Video Saya</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center;">
+            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center;">
+                <a href="{% url 'privacy_policy' %}"
+                    style="color: var(--text-secondary); text-decoration: none; font-size: 0.875rem; transition: color 0.2s;"
+                    onmouseover="this.style.color='var(--text-primary)'"
+                    onmouseout="this.style.color='var(--text-secondary)'">Privacy Policy</a>
+                <span style="color: var(--border-color);">•</span>
+                <a href="{% url 'terms_of_service' %}"
+                    style="color: var(--text-secondary); text-decoration: none; font-size: 0.875rem; transition: color 0.2s;"
+                    onmouseover="this.style.color='var(--text-primary)'"
+                    onmouseout="this.style.color='var(--text-secondary)'">Terms of Service</a>
+            </div>
+            <p>&copy; 2026 Sistem AntiSlot</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const profileContainer = document.getElementById('profileContainer');
+            const profileDropdown = document.getElementById('profileDropdown');
+            const suggestLoginMenu = document.getElementById('suggestLoginMenu');
+            const closeSuggestBtn = document.getElementById('closeSuggestBtn');
+            const isLoggedIn = {{ oauth_ok|yesno:"true,false"}};
+
+        if (profileContainer && isLoggedIn) {
+            profileContainer.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (profileDropdown) {
+                    profileDropdown.classList.toggle('hidden');
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!profileContainer.contains(e.target) && profileDropdown && !profileDropdown.contains(e.target)) {
+                    profileDropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        if (closeSuggestBtn && suggestLoginMenu) {
+            closeSuggestBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                suggestLoginMenu.style.display = 'none';
+            });
+        }
+        });
+    </script>
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block script %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- START HERO SECTION -->
+<div class="hero-section">
+  <h1>Analisis Komentar</h1>
+  <p class="subtitle">Deteksi promosi judi online pada komentar YouTube secara otomatis menggunakan Logistic Regression
+  </p>
+</div>
+<!-- END HERO SECTION -->
+
+<!-- START FORM ANALISIS -->
+<form class="analysis-container" hx-post="{% url 'index' %}" hx-target="#resultsContainer" hx-indicator="#loadingState"
+  hx-swap="innerHTML">
+
+  {% csrf_token %}
+  <!-- START INPUT URL -->
+  <div class="input-group">
+    <label for="urlInput">Video URL atau Channel</label>
+    <input type="text" name="url" id="urlInput" placeholder="https://youtube.com/watch?v=/channel atau @WindahBasudara"
+      spellcheck="false" required value="{{ url|default:'' }}"
+      oninput="this.classList.remove('input-error'); document.getElementById('urlInlineError').innerHTML = '';">
+    <div id="urlInlineError"></div>
+  </div>
+  <!-- END INPUT URL -->
+
+  <!-- START INPUT VIDEO MODE -->
+  <div class="input-group" id="videoInputContainer">
+    <label for="maxResults">Total Komentar Diambil</label>
+    <select name="limit" id="maxResults">
+      <option value="20">20 Komentar</option>
+      <option value="50" selected>50 Komentar</option>
+      <option value="100">100 Komentar</option>
+      <option value="200">200 Komentar</option>
+      <option value="500">500 Komentar</option>
+      <option value="1000">1000 Komentar</option>
+      {% if oauth_ok %}
+      <option value="0">Semua</option>
+      {% endif %}
+    </select>
+  </div>
+  <!-- END INPUT VIDEO MODE -->
+
+  <!-- START INPUT CHANNEL MODE -->
+  <div class="input-group hidden" id="channelInputContainer">
+    <label for="videoCount">Analisis Video Terakhir</label>
+    <select name="video_count" id="videoCount" disabled>
+      <option value="3">3 Video</option>
+      <option value="5" selected>5 Video</option>
+      <option value="10">10 Video</option>
+    </select>
+  </div>
+  <!-- END INPUT CHANNEL MODE -->
+
+  <!-- START INPUT COMMENTS PER VIDEO -->
+  <div class="input-group hidden" id="commentsPerVideoContainer">
+    <label for="commentsPerVideo">Sampel Komentar per Video</label>
+    <select name="comments_per_video" id="commentsPerVideo" disabled>
+      <option value="20">20 Komentar</option>
+      <option value="50" selected>50 Komentar</option>
+      <option value="100">100 Komentar</option>
+      <option value="200">200 Komentar</option>
+    </select>
+    <small style="color: #6b7280; font-size: 0.8rem; margin-top: 4px; display: block;">
+      *Total = (Jml Video) x (Komentar per Video)
+    </small>
+  </div>
+  <!-- END INPUT COMMENTS PER VIDEO -->
+
+  <!-- START SUBMIT BUTTON -->
+  <button type="submit" class="btn-analyze" id="analyzeBtn">
+    Mulai Analisis
+  </button>
+  <!-- END SUBMIT BUTTON -->
+</form>
+<!-- END FORM ANALISIS -->
+
+
+
+<!-- START LOADING STATE -->
+<div class="loading-state htmx-indicator" id="loadingState">
+  <div class="spinner"></div>
+  <p>Sedang mengambil komentar, melakukan preprocessing, dan prediksi...</p>
+</div>
+<!-- END LOADING STATE -->
+
+<!-- START HASIL ANALISIS -->
+<div class="results-section" id="resultsContainer">
+  {% if rows %}
+  {% include 'html/partials/results_partial.html' %}
+  {% endif %}
+</div>
+<!-- END HASIL ANALISIS -->
+
+<!-- START FAB MODERASI -->
+{% if oauth_ok %}
+<div class="fab-container hidden" id="fabContainer">
+  <button class="fab-btn" id="fabBtn" onclick="openModerationModal()">
+    Moderasi Komentar Terpilih (<span id="fabCount">0</span>)
+  </button>
+</div>
+{% endif %}
+<!-- END FAB MODERASI -->
+
+<!-- START MODAL MODERASI -->
+<div class="modal-overlay hidden" id="moderationModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>Konfirmasi Moderasi</h2>
+    </div>
+    <div class="modal-body">
+      <p>Anda akan menghapus <span id="modCountText">0</span> komentar yang dipilih.</p>
+      <div class="checkbox-group">
+        <input type="checkbox" id="blockUserCheckbox" name="block_user" value="1">
+        <label for="blockUserCheckbox">Blokir pengguna</label>
+      </div>
+    </div>
+    <div class="modal-footer row">
+      <button class="btn-cancel" onclick="closeModerationModal()">Batal</button>
+      <button class="btn-confirm" id="confirmModerationBtn">Lanjutkan</button>
+    </div>
+  </div>
+</div>
+<!-- END MODAL MODERASI -->
+
+<!-- START MODAL ERROR -->
+<div class="modal-overlay hidden" id="errorModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2 style="color: #ef4444;">Gagal Moderasi</h2>
+    </div>
+    <div class="modal-body">
+      <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1rem;">
+        <img src="{% static 'assets/image/forbidden.svg' %}" alt="Forbidden" width="64" height="64"
+          style="object-fit: contain;">
+        <p id="errorModalMsg" style="font-size: 1.1rem; color: #333;">Terjadi kesalahan.</p>
+      </div>
+    </div>
+    <div class="modal-footer row" style="justify-content: center;">
+      <button class="btn-cancel" onclick="closeErrorModal()" style="width: 100%;">Tutup</button>
+    </div>
+  </div>
+</div>
+<!-- END MODAL ERROR -->
+
+<!-- START MODAL SUCCESS -->
+<div class="modal-overlay hidden" id="successModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2 style="color: #16a34a;">Berhasil!</h2>
+    </div>
+    <div class="modal-body">
+      <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1rem;">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <p id="successModalMsg" style="font-size: 1.1rem; color: #333;">Aksi berhasil dilakukan.</p>
+      </div>
+    </div>
+    <div class="modal-footer row" style="justify-content: center;">
+      <button class="btn-confirm" onclick="closeSuccessModal()"
+        style="width: 100%; background-color: #16a34a; border-color: #16a34a;">OK</button>
+    </div>
+  </div>
+</div>
+<!-- END MODAL SUCCESS -->
+
+<!-- START MODAL LOGIN REQUIRED -->
+<div class="modal-overlay hidden" id="loginRequiredModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>Login Diperlukan</h2>
+    </div>
+    <div class="modal-body">
+      <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1rem;">
+        <img src="{% static 'assets/image/warning.svg' %}" alt="Warning" width="64" height="64"
+          style="object-fit: contain;">
+        <p style="font-size: 1.1rem; color: #333; font-weight: 500;">Harap login YouTube terlebih dahulu</p>
+        <p style="font-size: 0.9rem; color: #6b7280;">Untuk melakukan moderasi komentar, Anda perlu login dengan akun
+          YouTube terlebih dahulu.</p>
+      </div>
+    </div>
+    <div class="modal-footer row" style="justify-content: center;">
+      <button class="btn-cancel" onclick="closeLoginRequiredModal()" style="width: 100%;">Tutup</button>
+    </div>
+  </div>
+</div>
+<!-- END MODAL LOGIN REQUIRED -->
+
+{% endblock %}
+
+{% block script %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (typeof initMain === 'function') {
+      initMain({
+        csrfToken: '{{ csrf_token }}',
+        moderateUrl: "{% url 'moderate_comments' %}"
+      });
+    }
+  });
+</script>
+{% endblock %}
