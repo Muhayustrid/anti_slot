@@ -269,54 +269,6 @@ def get_videos_from_playlist(playlist_id, limit=5):
         
     return video_ids
 
-def get_my_latest_videos(yt_creds, limit=6):
-    """
-    Mengambil daftar video terbaru dari channel pengguna yang sedang login.
-    
-    Args:
-        yt_creds (dict): Kredensial sesi pengguna.
-        limit (int): Jumlah video yang diambil.
-        
-    Returns:
-        list[dict]: Daftar video dengan detail id, judul, thumbnail, dan tanggal.
-    """
-    service = get_youtube_client_from_session(yt_creds)
-    if not service:
-        return []
-
-    try:
-        channels_response = service.channels().list(
-            mine=True,
-            part="contentDetails"
-        ).execute()
-
-        if not channels_response.get("items"):
-            return []
-
-        uploads_playlist_id = channels_response["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
-
-        playlist_items_response = service.playlistItems().list(
-            playlistId=uploads_playlist_id,
-            part="snippet",
-            maxResults=limit
-        ).execute()
-
-        videos = []
-        for item in playlist_items_response.get("items", []):
-            snippet = item["snippet"]
-            videos.append({
-                "id": snippet["resourceId"]["videoId"],
-                "title": snippet["title"],
-                "thumbnail": snippet["thumbnails"].get("medium", snippet["thumbnails"].get("default"))["url"],
-                "published_at": snippet["publishedAt"]
-            })
-        
-        return videos
-
-    except Exception as e:
-        print(f"Error fetching my videos: {e}")
-        return []
-
 
 def get_channel_info(identifier, id_type):
     """
@@ -554,58 +506,7 @@ def perform_moderation_action(service, comment_ids, action, block_user):
     else:
         return False, "Aksi tidak dikenal", "invalid_action"
 
-def get_my_videos_paginated(yt_creds, limit=6, page_token=None):
-    """
-    Mengambil video milik pengguna dengan dukungan halaman (pagination).
-    
-    Args:
-        yt_creds (dict): Kredensial sesi.
-        limit (int): Jumlah item per halaman.
-        page_token (str): Token halaman berikutnya (jika ada).
-        
-    Returns:
-        dict: {'items': list, 'next_page_token': str|None}
-    """
-    service = get_youtube_client_from_session(yt_creds)
-    if not service:
-        return {"items": [], "next_page_token": None}
 
-    try:
-        channels_response = service.channels().list(
-            mine=True,
-            part="contentDetails"
-        ).execute()
-
-        if not channels_response.get("items"):
-            return {"items": [], "next_page_token": None}
-
-        uploads_playlist_id = channels_response["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
-
-        playlist_items_response = service.playlistItems().list(
-            playlistId=uploads_playlist_id,
-            part="snippet",
-            maxResults=limit,
-            pageToken=page_token
-        ).execute()
-
-        videos = []
-        for item in playlist_items_response.get("items", []):
-            snippet = item["snippet"]
-            videos.append({
-                "id": snippet["resourceId"]["videoId"],
-                "title": snippet["title"],
-                "thumbnail": snippet["thumbnails"].get("medium", snippet["thumbnails"].get("default"))["url"],
-                "published_at": snippet["publishedAt"]
-            })
-        
-        return {
-            "items": videos,
-            "next_page_token": playlist_items_response.get("nextPageToken")
-        }
-
-    except Exception as e:
-        print(f"Error fetching paginated videos: {e}")
-        return {"items": [], "next_page_token": None}
 
 def get_my_videos_with_filter(yt_creds, limit=50, date_filter='today'):
     """

@@ -272,6 +272,40 @@ window.initSidebar = function () {
  * Mengatur konfigurasi, sidebar, event listener form, dan logika moderasi.
  * @param {Object} config - Konfigurasi situs (csrfToken, moderateUrl, dll).
  */
+/**
+ * Memperbarui statistik dashboard setelah penghapusan komentar.
+ * @param {NodeList} checkedBoxes - Checkbox dari baris yang akan dihapus.
+ */
+window.updateDashboardStats = function (checkedBoxes) {
+    const statTotal = document.getElementById('statTotal');
+    const statClean = document.getElementById('statClean');
+    const statGambling = document.getElementById('statGambling');
+
+    if (!statTotal || !statClean || !statGambling) return;
+
+    let total = parseInt(statTotal.innerText.replace(/\D/g, '')) || 0;
+    let clean = parseInt(statClean.innerText.replace(/\D/g, '')) || 0;
+    let gambling = parseInt(statGambling.innerText.replace(/\D/g, '')) || 0;
+
+    checkedBoxes.forEach(cb => {
+        const row = cb.closest('tr');
+        if (row) {
+            const type = row.dataset.type; // 'gambling' or 'clean'
+            total--;
+            if (type === 'gambling') {
+                gambling--;
+            } else if (type === 'clean') {
+                clean--;
+            }
+        }
+    });
+
+    // Ensure no negative numbers
+    statTotal.innerText = Math.max(0, total);
+    statClean.innerText = Math.max(0, clean);
+    statGambling.innerText = Math.max(0, gambling);
+};
+
 window.initMain = function (config) {
     window.siteConfig = config || {};
     console.log("Main Script Initialized with Config");
@@ -326,6 +360,10 @@ window.initMain = function (config) {
                     window.closeModerationModal();
                     if (result.body.ok) {
                         window.openSuccessModal(result.body.msg || "Berhasil!");
+                        
+                        // Update stats BEFORE removing rows
+                        window.updateDashboardStats(checkedBoxes);
+                        
                         checkedBoxes.forEach(cb => cb.closest('tr').remove());
                         window.updateFab();
                         const selectAll = document.getElementById('selectAllCheckbox');

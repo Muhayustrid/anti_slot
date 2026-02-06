@@ -14,7 +14,7 @@ from .services.youtube import (
     fetch_youtube_user_info_oauth,
     revoke_youtube_token,
     perform_moderation_action,
-    get_my_latest_videos,
+
     get_my_videos_with_filter,
 )
 from .utils import (
@@ -293,27 +293,6 @@ def home(request):
         context["proba"] = result["proba"]
     return render(request, "html/tes.html", context)
 
-def my_videos_partial(request):
-    """
-    Mengambil dan merender grid video terbaru milik pengguna untuk dimuat secara parsial.
-    Biasanya digunakan untuk pagination atau reload konten.
-    
-    Args:
-        request: Objek HTTP request Django.
-        
-    Returns:
-        HttpResponse: HTML parsial grid video.
-    """
-    if not request.session.get("yt_creds"):
-         return HttpResponseForbidden("Not Authenticated")
-         
-    try:
-        limit = int(request.GET.get('limit', 6))
-    except (ValueError, TypeError):
-        limit = 6
-
-    videos = get_my_latest_videos(request.session.get("yt_creds"), limit=limit)
-    return render(request, "html/partials/video_grid.html", {"my_videos": videos})
 
 def video_saya(request):
     """

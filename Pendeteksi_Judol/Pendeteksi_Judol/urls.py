@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from deteksi.views import index, oauth_start, oauth_callback, revoke_and_logout_view, moderate_comments, home, my_videos_partial, video_saya, comment_detail, get_ai_insight, get_dataset
+from deteksi.views import index, oauth_start, oauth_callback, revoke_and_logout_view, moderate_comments, home, video_saya, comment_detail, get_ai_insight, get_dataset
 from .views import privacy_policy, terms_of_service
 
 urlpatterns = [
@@ -30,7 +30,7 @@ urlpatterns = [
     path("logout/", revoke_and_logout_view, name="logout_view"),
     path("privacy/", privacy_policy, name="privacy_policy"),
     path("terms/", terms_of_service, name="terms_of_service"),
-    path("my-videos-partial/", my_videos_partial, name="my_videos_partial"),
+
     path("video-saya/", video_saya, name="video_saya"),
     path("comment/detail/", comment_detail, name="comment_detail"),
     path("getdataset/", get_dataset, name="get_dataset"),

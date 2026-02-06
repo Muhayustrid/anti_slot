@@ -154,7 +154,8 @@
             const profileDropdown = document.getElementById('profileDropdown');
             const suggestLoginMenu = document.getElementById('suggestLoginMenu');
             const closeSuggestBtn = document.getElementById('closeSuggestBtn');
-            const isLoggedIn = {{ oauth_ok|yesno:"true,false"}};
+            const isLoggedIn = {{ oauth_ok| yesno: "true,false"
+        }};
 
         if (profileContainer && isLoggedIn) {
             profileContainer.addEventListener('click', (e) => {
@@ -179,7 +180,7 @@
         }
         });
     </script>
-    <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'js/main.js' %}?v=1.1"></script>
     {% block script %}{% endblock %}
 </body>
 
