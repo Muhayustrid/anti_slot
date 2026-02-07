@@ -56,12 +56,14 @@ def fetch_all_comment_threads(video_id: str, max_total: int = 200):
     
     Args:
         video_id (str): ID video YouTube.
-        max_total (int): Batas maksimum jumlah komentar yang diambil.
+        max_total (int): Batas maksimum jumlah komentar yang diambil. 0 untuk ambil semua.
         
     Returns:
         list: Daftar item thread komentar dari API YouTube.
     """
     items, page_token = [], None
+    seen_ids = set()
+
     try:
         while True:
             resp = youtube.commentThreads().list(
@@ -72,10 +74,16 @@ def fetch_all_comment_threads(video_id: str, max_total: int = 200):
                 order="time",
                 textFormat="plainText",
             ).execute()
+            
             batch = resp.get("items", [])
-            items.extend(batch)
+            for item in batch:
+                if item["id"] not in seen_ids:
+                    seen_ids.add(item["id"])
+                    items.append(item)
+
             if max_total != 0 and len(items) >= max_total:  
                 break
+            
             page_token = resp.get("nextPageToken")
             if not page_token:
                 break
@@ -96,6 +104,8 @@ def fetch_all_replies(parent_id: str):
         list: Daftar item balasan komentar.
     """
     replies, page_token = [], None
+    seen_ids = set()
+
     while True:
         resp = youtube.comments().list(
             part="id,snippet",
@@ -104,7 +114,13 @@ def fetch_all_replies(parent_id: str):
             pageToken=page_token,
             textFormat="plainText",
         ).execute()
-        replies.extend(resp.get("items", []))
+        
+        batch = resp.get("items", [])
+        for item in batch:
+            if item["id"] not in seen_ids:
+                seen_ids.add(item["id"])
+                replies.append(item)
+
         page_token = resp.get("nextPageToken")
         if not page_token:
             break
@@ -116,7 +132,7 @@ def collect_comments(link: str, limit: int = 100):
     
     Args:
         link (str): URL video YouTube.
-        limit (int): Batas maksimum total komentar.
+        limit (int): Batas maksimum total komentar. 0 untuk ambil semua (unlimited).
         
     Returns:
         list[dict]: Daftar dictionary berisi data komentar yang telah dinormalisasi.
@@ -125,42 +141,46 @@ def collect_comments(link: str, limit: int = 100):
     threads = fetch_all_comment_threads(vid, max_total=limit)
 
     rows = []
+    seen_comment_ids = set()
+
     for th in threads:
-        top = th["snippet"]["topLevelComment"]["snippet"]
-        rows.append({
-            "level": "top",
-            "comment_id": th["snippet"]["topLevelComment"]["id"],
-            "parent_id": None,
-            "author": top.get("authorDisplayName"),
-            "published_at": top.get("publishedAt"),
-            "updated_at": top.get("updatedAt"),
-            "text": top.get("textDisplay") or "",   
-        })
+        top_node = th["snippet"]["topLevelComment"]
+        top_id = top_node["id"]
+        
+        if top_id not in seen_comment_ids:
+            seen_comment_ids.add(top_id)
+            
+            top_snippet = top_node["snippet"]
+            rows.append({
+                "level": "top",
+                "comment_id": top_id,
+                "parent_id": None,
+                "author": top_snippet.get("authorDisplayName"),
+                "published_at": top_snippet.get("publishedAt"),
+                "updated_at": top_snippet.get("updatedAt"),
+                "text": top_snippet.get("textDisplay") or "",   
+            })
 
         total_replies = th["snippet"].get("totalReplyCount", 0)
-        if total_replies:
-            parent_id = th["snippet"]["topLevelComment"]["id"]
-            partial = (th.get("replies", {}) or {}).get("comments", [])
-            have = {r["id"] for r in partial}
-            for r in partial:
-                rs = r["snippet"]
-                rows.append({
-                    "level": "reply",
-                    "comment_id": r["id"],
-                    "parent_id": parent_id,
-                    "author": rs.get("authorDisplayName"),
-                    "published_at": rs.get("publishedAt"),
-                    "updated_at": rs.get("updatedAt"),
-                    "text": rs.get("textDisplay") or "",
-                })
-            if len(have) < total_replies:
-                for r in fetch_all_replies(parent_id):
-                    if r["id"] in have: 
-                        continue
+        if total_replies > 0:
+            parent_id = top_id
+            replies_list = (th.get("replies", {}) or {}).get("comments", [])
+            
+            snippet_reply_ids = {r["id"] for r in replies_list}
+            if len(snippet_reply_ids) < total_replies:
+                fetched_replies = fetch_all_replies(parent_id)
+                replies_to_process = fetched_replies
+            else:
+                replies_to_process = replies_list
+
+            for r in replies_to_process:
+                rid = r["id"]
+                if rid not in seen_comment_ids:
+                    seen_comment_ids.add(rid)
                     rs = r["snippet"]
                     rows.append({
                         "level": "reply",
-                        "comment_id": r["id"],
+                        "comment_id": rid,
                         "parent_id": parent_id,
                         "author": rs.get("authorDisplayName"),
                         "published_at": rs.get("publishedAt"),
@@ -170,6 +190,7 @@ def collect_comments(link: str, limit: int = 100):
 
     if limit > 0 and len(rows) > limit:
         rows = rows[:limit]
+        
     return rows
 
 def extract_channel_info(input_str: str):
