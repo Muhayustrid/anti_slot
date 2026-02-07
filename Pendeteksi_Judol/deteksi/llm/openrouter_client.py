@@ -7,17 +7,20 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 MODEL_FALLBACK_LIST: List[str] = [
+    "arcee-ai/trinity-large-preview:free",
+    "stepfun/step-3.5-flash:free",
+    "tngtech/deepseek-r1t2-chimera:free",
+    "nvidia/nemotron-nano-12b-v2-vl:free",
     "nvidia/nemotron-3-nano-30b-a3b:free",
     "liquid/lfm-2.5-1.2b-thinking:free",
-    "stepfun/step-3.5-flash:free",
-    "arcee-ai/trinity-mini:free",
     "xiaomi/mimo-v2-flash:free",
-    "tngtech/deepseek-r1t2-chimera:free",
     "amazon/nova-2-lite-v1:free",
     "mistralai/devstral-2512:free",
 ]
 
 sort_name_model = {
+    "nvidia/nemotron-nano-12b-v2-vl:free": "Nemotron VL",
+    "arcee-ai/trinity-large-preview:free": "Trinity Large",
     "stepfun/step-3.5-flash:free": "StepFun",
     "arcee-ai/trinity-mini:free": "Trinity Mini",
     "nvidia/nemotron-3-nano-30b-a3b:free": "Nemotron",
