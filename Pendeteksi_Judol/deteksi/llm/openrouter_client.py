@@ -52,35 +52,54 @@ def call_openrouter_with_fallback(messages: list, timeout: int = 15) -> Tuple[Op
 
     for model_name in MODEL_FALLBACK_LIST:
         print(f"[LLM] Mencoba model: {model_name}...")
-        
+
         headers = {
             "Authorization": f"Bearer {API_KEY}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/muhayustrid/youtube_gambling_detection", 
+            "HTTP-Referer": "https://github.com/muhayustrid/youtube_gambling_detection",
         }
-        
+
         body = {
             "model": model_name,
             "messages": messages,
-        }
-        
+            "stream": True,  }
+
         try:
-            r = requests.post(OPENROUTER_URL, headers=headers, data=json.dumps(body), timeout=timeout)
+            r = requests.post(
+                OPENROUTER_URL,
+                headers=headers,
+                data=json.dumps(body),
+                timeout=timeout,
+                stream=True,
+            )
             r.raise_for_status()
-            
-            j = r.json()
-            
-            choice = j["choices"][0]["message"]
-            content = choice.get("content", "")
-            
+
+            full_text = ""
+
+            for line in r.iter_lines():
+                if not line:
+                    continue
+
+                decoded = line.decode("utf-8")
+
+                if decoded.startswith("data: "):
+                    payload = decoded.replace("data: ", "")
+
+                    if payload.strip() == "[DONE]":
+                        break
+
+                    try:
+                        j = json.loads(payload)
+                        delta = j["choices"][0]["delta"].get("content", "")
+                        full_text += delta
+                    except Exception:
+                        continue
+
             short_name = sort_name_model.get(model_name, "Unknown Model")
-            
             print(f"[LLM] ✅ Berhasil dengan model: {model_name}")
-            
-            return content, {
-                "model_used": short_name
-            }
-            
+
+            return full_text, {"model_used": short_name}
+
         except requests.exceptions.RequestException as exc:
             print(f"[LLM] ❌ Gagal dengan model {model_name}: {exc}")
             last_error = str(exc)
