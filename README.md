@@ -291,19 +291,19 @@ Pendeteksi_Judol/
 
 Halaman utama untuk memasukkan URL video YouTube dan melakukan analisis komentar.
 
-![Tampilan Utama](static/assets/image/tampilan_web/tampilan_utama.png)
+![Tampilan Utama](Pendeteksi_Judol/static/assets/image/tampilan_web/tampilan_utama.png)
 
 ### 2. Hasil Analisis
 
 Tampilan hasil deteksi komentar spam judi online dengan statistik dan AI insight.
 
-![Hasil Analisis](static/assets/image/tampilan_web/tampilan_utama_hasil.png)
+![Hasil Analisis](Pendeteksi_Judol/static/assets/image/tampilan_web/tampilan_utama_hasil.png)
 
 ### 3. Halaman Video Saya
 
 Dashboard untuk melihat dan mengelola video dari channel YouTube yang terhubung.
 
-![Halaman Video Saya](static/assets/image/tampilan_web/halaman_video_saya.png)
+![Halaman Video Saya](Pendeteksi_Judol/static/assets/image/tampilan_web/halaman_video_saya.png)
 
 ---
 
